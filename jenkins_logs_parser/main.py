@@ -30,7 +30,7 @@ class JenkinsClient:
         self._session = session
         self._base_url = base_url.rstrip('/')
 
-    def _job_url(self, job_name: str) -> str:
+    def _job_url(self, job_name: str, noapi=False) -> str:
         """Формирует базовый URL для джобы (поддерживает вложенные папки через '/').
 
         Например: 'folder/job' → '<base>/job/folder/job/job'
@@ -39,7 +39,7 @@ class JenkinsClient:
 
             if job_name.endswith("/"):
                 job_name = job_name[:-1]
-            url = job_name + "/api/json"
+            url = job_name + ("/api/json" if not noapi else "")
             return url
 
         parts = job_name.split('/')
@@ -63,7 +63,7 @@ class JenkinsClient:
 
     def get_build_console_output(self, job_name: str, build_number: int) -> str:
         """Возвращает текст консоли для указанного билда."""
-        url = self._job_url(job_name) + f'/{build_number}/consoleText'
+        url = self._job_url(job_name, noapi=True) + f'/{build_number}/consoleText'
         resp = self._session.get(url)
         if resp.status_code == 404:
             raise JenkinsNotFoundError(f"{job_name}#{build_number}")
