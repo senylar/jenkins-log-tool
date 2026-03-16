@@ -5,16 +5,25 @@ on:
     tags:
       - 'v*'
 
-# ✅ Явно указываем нужные права для GITHUB_TOKEN
 permissions:
   contents: write
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    name: Build for ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            asset_name: jlt-linux.tar.gz
+          - os: windows-latest
+            asset_name: jlt-windows.zip
+          - os: macos-latest
+            asset_name: jlt-macos.tar.gz
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -29,16 +38,65 @@ jobs:
       - name: Run build
         run: python -m build
 
-      - name: Install wheel and copy CLI binary
+      # Используем bash везде, чтобы логика была одинаковой
+      - name: Package Binary
+        shell: bash
         run: |
+          # Устанавливаем пакет
           python -m pip install dist/*.whl
+          
+          # Находим путь установки скриптов
           BIN_PATH=$(python -c "import sysconfig; print(sysconfig.get_path('scripts'))")
-          mkdir -p out
-          cp $BIN_PATH/jlt out/
+          
+          # Создаем временную папку для подготовки
+          mkdir -p prepare_dist
+
+          # Определяем имя исходного файла (Windows со��дает .exe)
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            EXE_NAME="jlt.exe"
+          else
+            EXE_NAME="jlt"
+          fi
+
+          # Копируем файл, сохраняя его оригинальное имя
+          cp "$BIN_PATH/$EXE_NAME" "prepare_dist/$EXE_NAME"
+          
+          echo "Binary prepared at: prepare_dist/$EXE_NAME"
+
+          # Архивируем папку, чтобы сохранить имя файла внутри, но дать уникальное имя архиву
+          cd prepare_dist
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            # На Windows используем 7z (предустановлен на GitHub Runners) для создания zip
+            7z a "../${{ matrix.asset_name }}" "$EXE_NAME"
+          else
+            # На Linux/Mac используем tar
+            tar -czvf "../${{ matrix.asset_name }}" "$EXE_NAME"
+          fi
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: asset-${{ matrix.os }}
+          path: ${{ matrix.asset_name }}
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true # Сливаем все скачанные файлы в одну папку
+
+      - name: List files
+        run: ls -R dist
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: out/jlt
+          files: dist/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
