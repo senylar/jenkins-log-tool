@@ -31,7 +31,10 @@ Move-Item -Path "$HOME\Downloads\jlt.exe" -Destination "C:\Tools\"
 # 4. Перезапустите терминал и проверьте
 jlt --version
 ```
-
+## Сборка
+```
+pipx install .
+```
 
 После установки доступна команда `jlt`.
 
