@@ -4,9 +4,34 @@
 
 ## Установка
 
+# Пример для Mac OS и Ubuntu
 ```bash
-pip install .
+# 1. Перемещаем файл в директорию, доступную из PATH (требуются права администратора)
+sudo mv ~/Downloads/jlt /usr/local/bin/
+
+# 2. Делаем файл исполняемым
+sudo chmod +x /usr/local/bin/jlt
+
+# 3. Проверяем
+jlt --version
 ```
+
+# Пример для Windows
+```
+# 1. Создаем папку для утилит (если её нет)
+New-Item -ItemType Directory -Force -Path "C:\Tools"
+
+# 2. Перемещаем jlt.exe из Загрузок в эту папку
+Move-Item -Path "$HOME\Downloads\jlt.exe" -Destination "C:\Tools\"
+
+# 3. Добавляем папку C:\Tools в переменную PATH (для текущего пользователя)
+# Внимание: Эта команда добавит путь навсегда, перезагрузка консоли потребуется для вступления в силу.
+[System.Environment]::SetEnvironmentVariable("Path", $env:Path + ";C:\Tools", [System.EnvironmentVariableTarget]::User)
+
+# 4. Перезапустите терминал и проверьте
+jlt --version
+```
+
 
 После установки доступна команда `jlt`.
 
@@ -21,20 +46,20 @@ jlt --setup
 2. Загрузите логи нужной джобы:
 
 ```bash
-jlt my-folder/my-job
+jlt link/to/job
 ```
 
 ## Использование
 
 ```
-jlt [--setup | --show-config] [job_name] [-b BUILDS] [-l]
+jlt [--setup | --show-config] [job_url] [-b BUILDS] [-l]
 ```
 
 ### Аргументы
 
 | Аргумент | Описание |
 |---|---|
-| `job_name` | Имя джобы в Jenkins. Поддерживает вложенные папки через `/` (например, `folder/jobname`). |
+| `job_url` | Ссылка на джобу в Jenkins. Поддерживает вложенные папки через. |
 | `-b`, `--builds` | Номера билдов для загрузки (см. форматы ниже). По умолчанию: `latest`. |
 | `-l`, `--lnav` | Открыть логи в `lnav` (Linux/macOS) или Блокноте (Windows) вместо сохранения в файл. |
 | `--setup` | Интерактивная настройка конфигурации (URL, пользователь, токен, путь к логам). |
